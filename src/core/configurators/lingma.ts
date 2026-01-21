@@ -35,28 +35,21 @@ export class LingmaConfigurator implements ToolConfigurator {
    * @returns {Promise<void>} Resolves when configuration is complete
    */
   async configure(projectPath: string, openspecDir: string): Promise<void> {
-    // Construct full path to .lingma/rules/openspec-rules.md
     const filePath = path.join(projectPath, this.configFileName);
-
-    // Combine trigger configuration with agent-standard instructions
     const content = TemplateManager.getAgentsStandardTemplate();
-
-    // Write or update file with managed content between markers
-    // This allows future updates to refresh instructions automatically
-    await FileSystemUtils.updateFileWithMarkers(
-      filePath,
-      content,
-      OPENSPEC_MARKERS.start,
-      OPENSPEC_MARKERS.end
-    );
-
-    // Create trigger configuration for Lingma rules
-    const lingmaRulesTrigger = `---\ntrigger: always_on\nalwaysApply: true\n---\n`;
+    const frontmatter = `---\ntrigger: always_on\nalwaysApply: true\n---`;
     if (await FileSystemUtils.fileExists(filePath)) {
-      const existingContent = await FileSystemUtils.readFile(filePath);
-      if (!existingContent.startsWith(lingmaRulesTrigger)) {
-        await FileSystemUtils.writeFile(filePath, lingmaRulesTrigger + existingContent);
-      }
+      // Update existing file: only update content between markers
+      await FileSystemUtils.updateFileWithMarkers(
+        filePath,
+        content,
+        OPENSPEC_MARKERS.start,
+        OPENSPEC_MARKERS.end
+      );
+    } else {
+      // Create new file: frontmatter + markers + content
+      const fullContent = `${frontmatter}\n${OPENSPEC_MARKERS.start}\n${content}\n${OPENSPEC_MARKERS.end}\n`;
+      await FileSystemUtils.writeFile(filePath, fullContent);
     }
   }
 }
